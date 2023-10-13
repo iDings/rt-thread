@@ -27,7 +27,13 @@ import platform
 
 def GetLLVM_ARMRoot(rtconfig):
     exec_path = rtconfig.EXEC_PATH
-    lib_path = 'lib/clang-runtimes/arm-none-eabi'
+
+    config = re.findall(r"--config (.*)\.cfg", rtconfig.CFLAGS)
+    if config and (config[0] == 'aarch64'):
+        lib_path = 'lib/clang-runtimes/aarch64-none-elf'
+    else:
+        lib_path = 'lib/clang-runtimes/arm-none-eabi'
+
     root_path = os.path.join(exec_path, '..', lib_path)
 
     return root_path

@@ -8,6 +8,14 @@ PLATFORM    = 'gcc'
 EXEC_PATH   = os.getenv('RTT_EXEC_PATH') or '/usr/bin'
 BUILD       = 'debug'
 
+if os.getenv('RTT_CC'):
+    CROSS_TOOL = os.getenv('RTT_CC')
+
+if  CROSS_TOOL == 'gcc':
+    PLATFORM    = 'gcc'
+elif CROSS_TOOL == 'llvm-arm':
+    PLATFORM    = 'llvm-arm'
+
 if PLATFORM == 'gcc':
     # toolchains
     PREFIX  = os.getenv('RTT_CC_PREFIX') or 'aarch64-none-elf-'
@@ -43,5 +51,36 @@ if PLATFORM == 'gcc':
         CXXFLAGS += ' -Os'
     CXXFLAGS += ' -Woverloaded-virtual -fno-exceptions -fno-rtti'
 
-DUMP_ACTION = OBJDUMP + ' -D -S $TARGET > rtt.asm\n'
-POST_ACTION = OBJCPY + ' -O binary $TARGET rtthread.bin\n' + SIZE + ' $TARGET \n'
+    DUMP_ACTION = OBJDUMP + ' -D -S $TARGET > rtt.asm\n'
+    POST_ACTION = OBJCPY + ' -O binary $TARGET rtthread.bin\n' + SIZE + ' $TARGET \n'
+elif PLATFORM == 'llvm-arm':
+    # toolchains
+    PREFIX = 'llvm-'
+    CC = 'clang'
+    AS = 'clang'
+    AR = PREFIX + 'ar'
+    CXX = 'clang++'
+    LINK = 'clang'
+    TARGET_EXT = 'elf'
+    SIZE = PREFIX + 'size'
+    OBJDUMP = PREFIX + 'objdump'
+    OBJCPY = PREFIX + 'objcopy'
+
+    DEVICE = ' --config aarch64.cfg'
+    CFLAGS += DEVICE + ' -march=armv8-a -mtune=cortex-a53 -ftree-vectorize -ffast-math -funwind-tables -fno-strict-aliasing'
+    LFLAGS = DEVICE + '  -Wl,--gc-sections,-Map=rt-thread.map,--cref,-u,system_vectors -T link.lds'
+    CPPFLAGS= ' -E -P -x assembler-with-cpp'
+
+    CPATH = ''
+    LPATH = ''
+    AFLAGS  = ''
+
+    if BUILD == 'debug':
+        CFLAGS += ' -O0 -gdwarf-2 -g'
+        AFLAGS += ' -gdwarf-2'
+    else:
+        CFLAGS += ' -O2'
+
+    CXXFLAGS = CFLAGS 
+
+    POST_ACTION = OBJCPY + ' -O binary $TARGET rtthread.bin\n' + SIZE + ' $TARGET \n'
